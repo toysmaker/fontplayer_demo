@@ -110,6 +110,7 @@ const updateGlyphByParams = (params, global_params) => {
     skeletonRefPos,
   } = params
   const { weight } = global_params
+  const _weight = weight * 1.5
 
   let start, end
   const start_ref = new FP.Joint(
@@ -131,14 +132,14 @@ const updateGlyphByParams = (params, global_params) => {
     start = new FP.Joint(
       'start',
       {
-        x: start_ref.x - weight / 2,
+        x: start_ref.x - _weight / 2,
         y: start_ref.y,
       },
     )
     end = new FP.Joint(
       'end',
       {
-        x: end_ref.x - weight / 2,
+        x: end_ref.x - _weight / 2,
         y: end_ref.y,
       },
     )
@@ -147,14 +148,14 @@ const updateGlyphByParams = (params, global_params) => {
     start = new FP.Joint(
       'start',
       {
-        x: start_ref.x + weight / 2,
+        x: start_ref.x + _weight / 2,
         y: start_ref.y,
       },
     )
     end = new FP.Joint(
       'end',
       {
-        x: end_ref.x + weight / 2,
+        x: end_ref.x + _weight / 2,
         y: end_ref.y,
       },
     )
@@ -238,94 +239,96 @@ const getComponents = (skeleton) => {
   // 根据骨架计算轮廓关键点
   const { start, end } = skeleton
 
+  const _weight = weight * 1.5
+
   // out指左侧（外侧）轮廓线
   // in指右侧（内侧）轮廓线
-  const { out_shu_start, out_shu_end, in_shu_start, in_shu_end } = FP.getLineContours('shu', { shu_start: start, shu_end: end }, weight, {
+  const { out_shu_start, out_shu_end, in_shu_start, in_shu_end } = FP.getLineContours('shu', { shu_start: start, shu_end: end }, _weight, {
     unticlockwise: true,
   })
 
-  const radius = 5
-  const startTopAngle = FP.degreeToRadius(-45)
-  const startRightAngle = FP.degreeToRadius(-(40 + 5 * start_style_value))
-  const startLeftAngle = FP.degreeToRadius(25 + 5 * start_style_value)
-  const start_length = Math.min(35, FP.distance(start, end) * 0.5)
+  const radius = 15
+  const startRightAngle = FP.degreeToRadius(-(10 + 5 * start_style_value))
+  const startLeftAngle = FP.degreeToRadius(15 + 5 * start_style_value)
+  const stratTopAngle = FP.degreeToRadius(-20)
+  const start_length = Math.min(50, FP.distance(start, end) * 0.3)
+  const endRightAngle = FP.degreeToRadius(25 + 5 * end_style_value)
+  const endLeftAngle = FP.degreeToRadius(-(0 + 5 * end_style_value))
+  const endBottomAngle = FP.degreeToRadius(20)
+  const end_length = Math.min(60, FP.distance(start, end) * 0.3)
+  const d = 6 + 3 * weights_variation_power
+  const l = FP.distance(start, end)
+  const control_length = Math.min(l * 0.5 - start_length, l * 0.5 - end_length, 45)
 
-  const start_p0 = FP.getPointOnLine(in_shu_start, in_shu_end, start_length * 2)
-  const start_p1 = FP.getPointOnLine(in_shu_start, in_shu_end, start_length)
-  const start_p1_p2_vector = FP.turnAngleFromEnd(start_p0, start_p1, startRightAngle, 100)
-  const start_p5 = FP.getPointOnLine(out_shu_start, out_shu_end, start_length)
-  const start_p4 = out_shu_start
-  const start_p4_p3_vector = FP.turnAngleFromEnd(start_p5, start_p4, startLeftAngle, 100)
-  const start_p2_p3_vector = FP.turnAngleFromStart(start, out_shu_start, startTopAngle, 100)
-  const { corner: start_p2 } = FP.getIntersection(
-    { type: 'line', start: start_p1, end: start_p1_p2_vector },
-    { type: 'line', start: start, end: start_p2_p3_vector }
+  const p0 = FP.getPointOnLine(in_shu_start, in_shu_end, start_length)
+  const p3 = FP.getPointOnLine(out_shu_start, out_shu_end, start_length)
+  const p0_p1_vector = FP.turnAngleFromEnd(in_shu_end, p0, startRightAngle, 100)
+  const p3_p2_vector = FP.turnAngleFromEnd(out_shu_end, p3, startLeftAngle, 100)
+  const p1_p2_vector = FP.turnAngleFromStart(start, in_shu_start, stratTopAngle, 100)
+  const { corner: p1 } = FP.getIntersection(
+    { type: 'line', start: p0, end: p0_p1_vector },
+    { type: 'line', start: start, end: p1_p2_vector }
   )
-  const { corner: start_p3 } = FP.getIntersection(
-    { type: 'line', start: start_p4, end: start_p4_p3_vector },
-    { type: 'line', start: start, end: start_p2_p3_vector }
+  const { corner: p2 } = FP.getIntersection(
+    { type: 'line', start: p3, end: p3_p2_vector },
+    { type: 'line', start: start, end: p1_p2_vector }
   )
-  const start_p2_radius_before = FP.getPointOnLine(start_p2, start_p1, radius)
-  const start_p2_radius_after = FP.getPointOnLine(start_p2, start_p3, radius)
-  const start_p4_radius_before = FP.getPointOnLine(start_p4, start_p3, radius)
-  const start_p4_radius_after = FP.getPointOnLine(start_p4, start_p5, radius)
 
-  const endBottomAngle = FP.degreeToRadius(-45)
-  const endLeftAngle = FP.degreeToRadius(-(30 + 15 * end_style_value))
-  const end_length = Math.min(35 + 10 * end_style_value, FP.distance(start, end) * 0.5)
-  const end_p0 = FP.getPointOnLine(out_shu_end, out_shu_start, end_length)
-  const end_p0_p1_vector = FP.turnAngleFromEnd(out_shu_start, end_p0, endLeftAngle, 100)
-  const end_p1_p2_vector = FP.turnAngleFromStart(end, in_shu_end, endBottomAngle, 100)
-  const { corner: end_p1 } = FP.getIntersection(
-    { type: 'line', start: end_p0, end: end_p0_p1_vector },
-    { type: 'line', start: end, end: end_p1_p2_vector },
+  const p14 = FP.turnLeft(in_shu_end, FP.getPointOnLine(in_shu_end, in_shu_start, l * 0.5 - control_length), d)
+  const p15 = FP.turnLeft(in_shu_end, FP.getPointOnLine(in_shu_end, in_shu_start, l * 0.5), d)
+  const p16 = FP.turnLeft(in_shu_end, FP.getPointOnLine(in_shu_end, in_shu_start, l * 0.5 + control_length), d)
+  const p7 = FP.turnRight(out_shu_end, FP.getPointOnLine(out_shu_end, out_shu_start, l * 0.5 - control_length), d)
+  const p6 = FP.turnRight(out_shu_end, FP.getPointOnLine(out_shu_end, out_shu_start, l * 0.5), d)
+  const p5 = FP.turnRight(out_shu_end, FP.getPointOnLine(out_shu_end, out_shu_start, l * 0.5 + control_length), d)
+
+  const p12 = FP.getPointOnLine(in_shu_end, in_shu_start, end_length)
+  const p9 = FP.getPointOnLine(out_shu_end, out_shu_start, end_length)
+  const p11_p10_vector = FP.turnAngleFromStart(end, in_shu_end, endBottomAngle, 100)
+  const p12_p11_vector = FP.turnAngleFromEnd(in_shu_start, p12, endRightAngle, 100)
+  const p9_p10_vector = FP.turnAngleFromEnd(out_shu_start, p9, endLeftAngle, 100)
+  const { corner: p11 } = FP.getIntersection(
+    { type: 'line', start: p12, end: p12_p11_vector },
+    { type: 'line', start: end, end: p11_p10_vector },
   )
-  const { corner: end_p2 } = FP.getIntersection(
-    { type: 'line', start: in_shu_start, end: in_shu_end },
-    { type: 'line', start: end, end: end_p1_p2_vector },
+  const { corner: p10 } = FP.getIntersection(
+    { type: 'line', start: p9, end: p9_p10_vector },
+    { type: 'line', start: end, end: p11_p10_vector },
   )
-  const end_p1_radius_before = FP.getPointOnLine(end_p1, end_p0, radius)
-  const end_p1_radius_after = FP.getPointOnLine(end_p1, end_p2, radius)
-  const end_p2_radius_before = FP.getPointOnLine(end_p2, end_p1, radius)
-  const end_p2_radius_after = FP.getPointOnLine(end_p2, start_p0, radius)
+
+  const p17 = FP.getPointOnLine(p0, p16, FP.distance(p0, p16) * 0.5)
+  const p4 = FP.getPointOnLine(p3, p5, FP.distance(p3, p5) * 0.5)
+  const p13 = FP.getPointOnLine(p12, p14, FP.distance(p12, p14) * 0.5)
+  const p8 = FP.getPointOnLine(p9, p7, FP.distance(p9, p7) * 0.5)
+
+  const p1_radius_before = FP.getPointOnLine(p1, p0, radius)
+  const p1_radius_after = FP.getPointOnLine(p1, p2, radius)
+  const p2_radius_before = FP.getPointOnLine(p2, p1, radius)
+  const p2_radius_after = FP.getPointOnLine(p2, p3, radius)
+  const p11_radius_before = FP.getPointOnLine(p11, p10, radius)
+  const p11_radius_after = FP.getPointOnLine(p11, p12, radius)
+  const p10_radius_before = FP.getPointOnLine(p10, p9, radius)
+  const p10_radius_after = FP.getPointOnLine(p10, p11, radius)
 
   // 创建钢笔组件
   const pen = new FP.PenComponent()
   pen.beginPath()
 
   // 按逆时针方向绘制轮廓
-  if (start_style_type === 1) {
-    // 绘制起笔衬线
-    pen.moveTo(start_p0.x, start_p0.y)
-    pen.quadraticBezierTo(start_p1.x, start_p1.y, start_p2_radius_before.x, start_p2_radius_before.y)
-    pen.quadraticBezierTo(start_p2.x, start_p2.y, start_p2_radius_after.x, start_p2_radius_after.y)
-    pen.lineTo(start_p3.x, start_p3.y)
-    pen.lineTo(start_p4_radius_before.x, start_p4_radius_before.y)
-    pen.quadraticBezierTo(start_p4.x, start_p4.y, start_p4_radius_after.x, start_p4_radius_after.y)
-    pen.lineTo(start_p5.x, start_p5.y)
-  } else {
-    pen.moveTo(in_shu_start.x, in_shu_start.y)
-    pen.lineTo(out_shu_start.x, out_shu_start.y)
-  }
-
-  if (end_style_type === 1) {
-    // 绘制收笔衬线
-    pen.lineTo(end_p0.x, end_p0.y)
-    pen.lineTo(end_p1_radius_before.x, end_p1_radius_before.y)
-    pen.quadraticBezierTo(end_p1.x, end_p1.y, end_p1_radius_after.x, end_p1_radius_after.y)
-    pen.lineTo(end_p2_radius_before.x, end_p2_radius_before.y)
-    pen.quadraticBezierTo(end_p2.x, end_p2.y, end_p2_radius_after.x, end_p2_radius_after.y)
-  } else {
-    pen.lineTo(out_shu_end.x, out_shu_end.y)
-    pen.lineTo(in_shu_end.x, in_shu_end.y)
-  }
-
-  if (start_style_type === 1) {
-    // 绘制右侧（内侧）轮廓
-    pen.lineTo(start_p0.x, start_p0.y)
-  } else {
-    pen.lineTo(in_shu_start.x, in_shu_start.y)
-  }
+  pen.moveTo(p1_radius_before.x, p1_radius_before.y)
+  pen.quadraticBezierTo(p1.x, p1.y, p1_radius_after.x, p1_radius_after.y)
+  pen.lineTo(p2_radius_before.x, p2_radius_before.y)
+  pen.quadraticBezierTo(p2.x, p2.y, p2_radius_after.x, p2_radius_after.y)
+  pen.quadraticBezierTo(p3.x, p3.y, p4.x, p4.y)
+  pen.quadraticBezierTo(p5.x, p5.y, p6.x, p6.y)
+  pen.quadraticBezierTo(p7.x, p7.y, p8.x, p8.y)
+  pen.quadraticBezierTo(p9.x, p9.y, p10_radius_before.x, p10_radius_before.y)
+  pen.quadraticBezierTo(p10.x, p10.y, p10_radius_after.x, p10_radius_after.y)
+  pen.lineTo(p11_radius_before.x, p11_radius_before.y)
+  pen.quadraticBezierTo(p11.x, p11.y, p11_radius_after.x, p11_radius_after.y)
+  pen.quadraticBezierTo(p12.x, p12.y, p13.x, p13.y)
+  pen.quadraticBezierTo(p14.x, p14.y, p15.x, p15.y)
+  pen.quadraticBezierTo(p16.x, p16.y, p17.x, p17.y)
+  pen.quadraticBezierTo(p0.x, p0.y, p1_radius_before.x, p1_radius_before.y)
 
   pen.closePath()
   return [ pen ]

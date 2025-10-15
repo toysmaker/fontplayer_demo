@@ -342,6 +342,8 @@ const updateGlyphByParams = (params, global_params) => {
   } = params
   const { weight } = global_params
 
+  const _weight = weight * 1.5
+
   // 横
   let heng_start, heng_end
   const heng_start_ref = new FP.Joint(
@@ -364,14 +366,14 @@ const updateGlyphByParams = (params, global_params) => {
       'heng_start',
       {
         x: heng_start_ref.x,
-        y: heng_start_ref.y + weight / 2,
+        y: heng_start_ref.y + _weight / 2,
       },
     )
     heng_end = new FP.Joint(
       'heng_end',
       {
         x: heng_end_ref.x,
-        y: heng_end_ref.y + weight / 2,
+        y: heng_end_ref.y + _weight / 2,
       },
     )
   } else if (skeletonRefPos === 2) {
@@ -380,14 +382,14 @@ const updateGlyphByParams = (params, global_params) => {
       'heng_start',
       {
         x: heng_start_ref.x,
-        y: heng_start_ref.y - weight / 2,
+        y: heng_start_ref.y - _weight / 2,
       },
     )
     heng_end = new FP.Joint(
       'heng_end',
       {
         x: heng_end_ref.x,
-        y: heng_end_ref.y - weight / 2,
+        y: heng_end_ref.y - _weight / 2,
       },
     )
   } else {
@@ -567,16 +569,17 @@ const getComponents = (skeleton) => {
     pie_bend,
   } = skeleton
 
-  const radius = 5
   const turn_angle_1 = FP.degreeToRadius(10)
   const turn_angle_2 = FP.degreeToRadius(30)
+  const _weight = weight * 1.5
+  const _weight_2 = weight * 1.35
 
   // out指右侧（外侧）轮廓线
   // in指左侧（内侧）轮廓线
-  const { out_heng_start, out_heng_end, in_heng_start, in_heng_end } = FP.getLineContours('heng', { heng_start, heng_end }, weight)
-  const { out_zhe1_start, out_zhe1_end, in_zhe1_start, in_zhe1_end } = FP.getLineContours('zhe1', { zhe1_start, zhe1_end }, weight)
-  const { out_zhe2_start, out_zhe2_end, in_zhe2_start, in_zhe2_end } = FP.getLineContours('zhe2', { zhe2_start, zhe2_end }, weight)
-  const { out_pie_curves, out_pie_points, in_pie_curves, in_pie_points } = FP.getCurveContours('pie', { pie_start, pie_bend, pie_end }, weight, {
+  const { out_heng_start, out_heng_end, in_heng_start, in_heng_end } = FP.getLineContours('heng', { heng_start, heng_end }, _weight)
+  const { out_zhe1_start, out_zhe1_end, in_zhe1_start, in_zhe1_end } = FP.getLineContours('zhe1', { zhe1_start, zhe1_end }, _weight_2)
+  const { out_zhe2_start, out_zhe2_end, in_zhe2_start, in_zhe2_end } = FP.getLineContours('zhe2', { zhe2_start, zhe2_end }, _weight_2)
+  const { out_pie_curves, out_pie_points, in_pie_curves, in_pie_points } = FP.getCurveContours('pie', { pie_start, pie_bend, pie_end }, _weight, {
     weightsVariation: 'bezier',
     weightsVariationDir: 'reverse',
     weightsVariationPower: weights_variation_power,
@@ -595,7 +598,7 @@ const getComponents = (skeleton) => {
   )
   const in_corner_2_zhe1_zhe2 = {
     x: in_corner_1_zhe1_zhe2.x,
-    y: in_corner_1_zhe1_zhe2.y + weight
+    y: in_corner_1_zhe1_zhe2.y + _weight_2
   }
   const { corner: out_corner_zhe1_zhe2 } = FP.getIntersection(
     { type: 'line', start: out_zhe1_start, end: out_zhe1_end },
@@ -626,7 +629,7 @@ const getComponents = (skeleton) => {
   {
     const turn_length = 20 * turn_style_value
     const { inner_angle, mid_angle, angle1, angle2 } = FP.getTurnAngles(out_heng_start, out_corner_heng_zhe1, out_zhe1_end)
-    const inner_corner_length = weight
+    const inner_corner_length = _weight_2
     const corner_radius = (inner_corner_length / 2) / Math.sin(inner_angle / 2)
     const turn_control_1 = FP.getPointOnLine(out_corner_heng_zhe1, out_heng_start, corner_radius)
     const turn_start_1 = FP.getPointOnLine(turn_control_1, out_heng_start, corner_radius)
@@ -661,7 +664,7 @@ const getComponents = (skeleton) => {
     const turn_length = 20 * turn_style_value
     const inner_angle = Math.PI / 2
     const mid_angle = Math.PI / 4
-    const inner_corner_length = weight
+    const inner_corner_length = _weight_2
     const corner_radius = (inner_corner_length / 2) / Math.sin(inner_angle / 2)
     const turn_control_1 = FP.getPointOnLine(out_corner_zhe2_pie, out_zhe2_start, corner_radius)
     const turn_start_1 = FP.getPointOnLine(turn_control_1, out_zhe2_start, corner_radius)
@@ -694,18 +697,27 @@ const getComponents = (skeleton) => {
     }
   }
 
+  const radius = 15
   const topAngle = FP.degreeToRadius(-(5 + 5 * start_style_value))
   const bottomAngle = FP.degreeToRadius(25 + 5 * start_style_value)
   const leftAngle = FP.degreeToRadius(20)
-  const start_length = Math.min(50, FP.distance(heng_start, heng_end) * 0.5)
+  const start_length = Math.min(50, FP.distance(heng_start, heng_end) * 0.2)
+  const d = 6 + 3 * weights_variation_power
+  const l = FP.distance(heng_start, heng_end)
+  const control_length = Math.min((l * 0.5 - start_length) * 0.8, 45)
 
-  const start_p0 = FP.getPointOnLine(out_heng_start, out_heng_end, start_length * 2)
+  const out_turn_p2 = FP.turnLeft(out_heng_end, FP.getPointOnLine(out_heng_end, out_heng_start, l * 0.5 - control_length), d)
+  const out_turn_p1 = FP.turnLeft(out_heng_end, FP.getPointOnLine(out_heng_end, out_heng_start, l * 0.5), d)
+  const out_turn_p0 = FP.turnLeft(out_heng_end, FP.getPointOnLine(out_heng_end, out_heng_start, l * 0.5 + control_length), d)
+  const in_turn_p2 = FP.turnRight(in_heng_end, FP.getPointOnLine(in_heng_end, in_heng_start, l * 0.5 - control_length), d)
+  const in_turn_p1 = FP.turnRight(in_heng_end, FP.getPointOnLine(in_heng_end, in_heng_start, l * 0.5), d)
+  const in_turn_p0 = FP.turnRight(in_heng_end, FP.getPointOnLine(in_heng_end, in_heng_start, l * 0.5 + control_length), d)
+
   const start_p1 = FP.getPointOnLine(out_heng_start, out_heng_end, start_length)
-  const start_p1_p2_vector = FP.turnAngleFromEnd(start_p0, start_p1, topAngle, 100)
-  const start_p5 = FP.getPointOnLine(in_heng_start, in_heng_end, start_length * 1.3)
-  const start_p4 = FP.getPointOnLine(in_heng_start, in_heng_end, start_length * 0.65)
-  const start_p4_p3_vector = FP.turnAngleFromEnd(start_p5, start_p4, bottomAngle, 100)
-  const start_p2_p3_vector = FP.turnAngleFromStart(out_heng_start, heng_start, leftAngle, 100)
+  const start_p4 = FP.getPointOnLine(in_heng_start, in_heng_end, start_length)
+  const start_p1_p2_vector = FP.turnAngleFromEnd(out_heng_end, start_p1, topAngle, 100)
+  const start_p4_p3_vector = FP.turnAngleFromEnd(in_heng_end, start_p4, bottomAngle, 100)
+  const start_p2_p3_vector = FP.turnAngleFromStart(heng_start, in_heng_start, leftAngle, 100)
   const { corner: start_p2 } = FP.getIntersection(
     { type: 'line', start: start_p1, end: start_p1_p2_vector },
     { type: 'line', start: heng_start, end: start_p2_p3_vector }
@@ -714,6 +726,9 @@ const getComponents = (skeleton) => {
     { type: 'line', start: start_p4, end: start_p4_p3_vector },
     { type: 'line', start: heng_start, end: start_p2_p3_vector }
   )
+  const start_p0 = FP.getPointOnLine(start_p1, out_turn_p0, FP.distance(start_p1, out_turn_p0) * 0.5)
+  const start_p5 = FP.getPointOnLine(start_p4, in_turn_p0, FP.distance(start_p4, in_turn_p0) * 0.5)
+
   const start_p2_radius_before = FP.getPointOnLine(start_p2, start_p1, radius)
   const start_p2_radius_after = FP.getPointOnLine(start_p2, start_p3, radius)
   const start_p3_radius_before = FP.getPointOnLine(start_p3, start_p2, radius)
@@ -736,7 +751,7 @@ const getComponents = (skeleton) => {
   const turn_1_p2_radius_after = FP.getPointOnLine(turn_1_p2, turn_1_p3, radius)
   const turn_1_p2_radius_before = FP.getPointOnLine(turn_1_p2, turn_1_p1, radius)
 
-  const turn_2_p0 = turn_data_zhe2_pie.turn_start_2
+  const turn_2_p0 = turn_data_zhe2_pie.turn_control_2
   const turn_2_p3 = turn_data_zhe2_pie.turn_control_1
   const turn_2_p1_vector = FP.turnAngleFromStart(turn_2_p0, turn_data_zhe2_pie.turn_end_2, -turn_angle_2, 100)
   const turn_2_p2_vector = FP.turnAngleFromStart(turn_2_p3, turn_data_zhe2_pie.turn_end_1, turn_angle_1, 100)
@@ -758,18 +773,16 @@ const getComponents = (skeleton) => {
   pen.beginPath()
 
   // 按逆时针方向绘制轮廓
-  if (start_style_type === 1) {
-    pen.moveTo(start_p0.x, start_p0.y)
-    pen.quadraticBezierTo(start_p1.x, start_p1.y, start_p2_radius_before.x, start_p2_radius_before.y)
-    pen.quadraticBezierTo(start_p2.x, start_p2.y, start_p2_radius_after.x, start_p2_radius_after.y)
-    pen.lineTo(start_p3_radius_before.x, start_p3_radius_before.y)
-    pen.quadraticBezierTo(start_p3.x, start_p3.y, start_p3_radius_after.x, start_p3_radius_after.y)
-    pen.quadraticBezierTo(start_p4.x, start_p4.y, start_p5.x, start_p5.y)
-  } else if (start_style_type === 0) {
-    pen.moveTo(out_heng_start.x, out_heng_start.y)
-    pen.lineTo(in_heng_start.x, in_heng_start.y)
-  }
-  pen.lineTo(in_corner_heng_zhe1.x, in_corner_heng_zhe1.y)
+  pen.moveTo(start_p0.x, start_p0.y)
+  pen.quadraticBezierTo(start_p1.x, start_p1.y, start_p2_radius_before.x, start_p2_radius_before.y)
+  pen.quadraticBezierTo(start_p2.x, start_p2.y, start_p2_radius_after.x, start_p2_radius_after.y)
+  pen.lineTo(start_p3_radius_before.x, start_p3_radius_before.y)
+  pen.quadraticBezierTo(start_p3.x, start_p3.y, start_p3_radius_after.x, start_p3_radius_after.y)
+  pen.quadraticBezierTo(start_p4.x, start_p4.y, start_p5.x, start_p5.y)
+  
+  pen.quadraticBezierTo(in_turn_p0.x, in_turn_p0.y, in_turn_p1.x, in_turn_p1.y)
+  pen.quadraticBezierTo(in_turn_p2.x, in_turn_p2.y, in_corner_heng_zhe1.x, in_corner_heng_zhe1.y)
+
   pen.lineTo(in_corner_1_zhe1_zhe2.x, in_corner_1_zhe1_zhe2.y)
   pen.lineTo(in_corner_2_zhe1_zhe2.x, in_corner_2_zhe1_zhe2.y)
   pen.lineTo(in_pie_curves_final[0].start.x, in_pie_curves_final[0].start.y)
@@ -788,27 +801,22 @@ const getComponents = (skeleton) => {
   }
 
   // 绘制转角2
-  pen.lineTo(turn_2_p1_radius_before.x, turn_2_p1_radius_before.y)
+  pen.quadraticBezierTo(turn_2_p0.x, turn_2_p0.y, turn_2_p1_radius_before.x, turn_2_p1_radius_before.y)
   pen.quadraticBezierTo(turn_2_p1.x, turn_2_p1.y, turn_2_p1_radius_after.x, turn_2_p1_radius_after.y)
   pen.lineTo(turn_2_p2_radius_before.x, turn_2_p2_radius_before.y)
   pen.quadraticBezierTo(turn_2_p2.x, turn_2_p2.y, turn_2_p2_radius_after.x, turn_2_p2_radius_after.y)
-  pen.lineTo(turn_2_p3.x, turn_2_p3.y)
+  pen.quadraticBezierTo(turn_2_p3.x, turn_2_p3.y, turn_data_zhe2_pie.turn_start_1.x, turn_data_zhe2_pie.turn_start_1.y)
 
   pen.lineTo(out_corner_zhe1_zhe2.x, out_corner_zhe1_zhe2.y)
-  pen.lineTo(turn_1_p0.x, turn_1_p0.y)
+  pen.lineTo(turn_data_heng_zhe1.turn_start_2.x, turn_data_heng_zhe1.turn_start_2.y)
 
   // 绘制转角1
-  pen.lineTo(turn_1_p1_radius_before.x, turn_1_p1_radius_before.y)
+  pen.quadraticBezierTo(turn_1_p0.x, turn_1_p0.y, turn_1_p1_radius_before.x, turn_1_p1_radius_before.y)
   pen.quadraticBezierTo(turn_1_p1.x, turn_1_p1.y, turn_1_p1_radius_after.x, turn_1_p1_radius_after.y)
   pen.lineTo(turn_1_p2_radius_before.x, turn_1_p2_radius_before.y)
   pen.quadraticBezierTo(turn_1_p2.x, turn_1_p2.y, turn_1_p2_radius_after.x, turn_1_p2_radius_after.y)
-  pen.lineTo(turn_1_p3.x, turn_1_p3.y)
-
-  if (start_style_type === 1) {
-    pen.lineTo(start_p0.x, start_p0.y)
-  } else if (start_style_type === 0) {
-    pen.lineTo(out_heng_start.x, out_heng_start.y)
-  }
+  pen.bezierTo(turn_1_p3.x, turn_1_p3.y, out_turn_p2.x, out_turn_p2.y, out_turn_p1.x, out_turn_p1.y)
+  pen.quadraticBezierTo(out_turn_p0.x, out_turn_p0.y, start_p0.x, start_p0.y)
 
   pen.closePath()
   return [ pen ]
